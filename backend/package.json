@@ -12,6 +12,7 @@
     "dotenv": "^16.4.5",
     "morgan": "^1.10.0",
     "uuid": "^9.0.1",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "@azure/cosmos": "^4.2.0"
   }
 }

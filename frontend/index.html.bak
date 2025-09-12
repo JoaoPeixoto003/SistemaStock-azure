@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Inventário</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 font-sans min-h-screen">
+
+  <header class="bg-blue-600 text-white p-4 shadow flex justify-between items-center">
+    <h1 class="text-xl font-bold">📦 Sistema de Inventário</h1>
+    <div class="flex gap-4 items-center">
+      <div id="user-info" class="italic"></div>
+      <button id="logout-btn" onclick="logout()"
+        class="hidden bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <main class="p-6 space-y-6">
+
+    <!-- Login -->
+    <section id="login-section" class="bg-white p-6 rounded shadow">
+      <h2 class="text-lg font-bold mb-4">Login</h2>
+      <div class="flex gap-4 flex-wrap">
+        <input id="username" class="border p-2 rounded" placeholder="Utilizador">
+        <input id="password" type="password" class="border p-2 rounded" placeholder="Password">
+        <button onclick="login()" class="bg-green-600 text-white px-4 py-2 rounded">Entrar</button>
+      </div>
+    </section>
+
+    <!-- App -->
+    <section id="app-section" class="hidden space-y-6">
+
+      <!-- Métricas -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-4 rounded shadow text-center">
+          <h2 class="text-gray-500">Total Produtos</h2>
+          <p id="m-total" class="text-3xl font-bold">—</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow text-center">
+          <h2 class="text-gray-500">Stock Baixo</h2>
+          <p id="m-low" class="text-3xl font-bold text-red-600">—</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow text-center">
+          <h2 class="text-gray-500">Movimentos Hoje</h2>
+          <p id="m-mov" class="text-3xl font-bold text-green-600">—</p>
+        </div>
+      </section>
+
+      <!-- Adicionar Produto -->
+      <section class="bg-white p-6 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">Adicionar Produto</h2>
+        <div class="flex gap-4 flex-wrap">
+          <input id="p-nome" class="border p-2 rounded flex-1" placeholder="Nome">
+          <input id="p-cat" class="border p-2 rounded flex-1" placeholder="Categoria">
+          <input id="p-qtd" class="border p-2 rounded w-24" type="number" placeholder="Qtd">
+          <input id="p-min" class="border p-2 rounded w-24" type="number" placeholder="Mín">
+          <button onclick="addProduto()" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</button>
+        </div>
+      </section>
+
+      <!-- Lista Produtos -->
+      <section class="bg-white p-6 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">Produtos</h2>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2 border">Nome</th>
+              <th class="p-2 border">Categoria</th>
+              <th class="p-2 border">Qtd</th>
+              <th class="p-2 border">Mín</th>
+            </tr>
+          </thead>
+          <tbody id="t-prod"></tbody>
+        </table>
+      </section>
+
+    </section>
+  </main>
+
+  <script>
+    const API = "http://localhost:8080";
+    let token = localStorage.getItem("token") || null;
+
+    function showApp(logged) {
+      document.getElementById("login-section").classList.toggle("hidden", logged);
+      document.getElementById("app-section").classList.toggle("hidden", !logged);
+      document.getElementById("logout-btn").classList.toggle("hidden", !logged);
+
+      if (logged) {
+        document.getElementById("user-info").textContent = "Autenticado";
+        carregar();
+      } else {
+        document.getElementById("user-info").textContent = "";
+      }
+    }
+
+    async function login() {
+      const res = await fetch(API + "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        token = data.token;
+        localStorage.setItem("token", token);
+        showApp(true);
+      } else {
+        alert("Credenciais inválidas");
+      }
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem("token");
+      showApp(false);
+    }
+
+    async function fetchJSON(url, opts = {}) {
+      opts.headers = opts.headers || {};
+      if (token) {
+        opts.headers["Authorization"] = "Bearer " + token;
+      }
+      const r = await fetch(url, opts);
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    async function carregar() {
+      const produtos = await fetchJSON(API + "/api/produtos");
+      document.getElementById("t-prod").innerHTML = produtos.map(p => `
+    <tr>
+      <td class="p-2 border">${p.nome}</td>
+      <td class="p-2 border">${p.categoria}</td>
+      <td class="p-2 border ${p.quantidadeAtual <= p.quantidadeMinima ? 'text-red-600 font-bold' : ''}">
+        ${p.quantidadeAtual || 0}
+      </td>
+      <td class="p-2 border">${p.quantidadeMinima || 0}</td>
+    </tr>`).join("");
+      document.getElementById("m-total").textContent = produtos.length;
+      document.getElementById("m-low").textContent = produtos.filter(p => (p.quantidadeAtual || 0) <= (p.quantidadeMinima || 0)).length;
+      document.getElementById("m-mov").textContent = 0;
+    }
+
+    async function addProduto() {
+      const payload = {
+        nome: document.getElementById("p-nome").value,
+        categoria: document.getElementById("p-cat").value || "Geral",
+        quantidadeAtual: Number(document.getElementById("p-qtd").value || 0),
+        quantidadeMinima: Number(document.getElementById("p-min").value || 0)
+      };
+      await fetchJSON(API + "/api/produtos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      carregar();
+    }
+
+    showApp(!!token);
+  </script>
+</body>
+
+</html>
