@@ -1,11 +1,17 @@
 import { Router } from "express";
 import { v4 as uuid } from "uuid";
 import { CosmosClient } from "@azure/cosmos";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const r = Router();
 
 // Cosmos setup
-const client = new CosmosClient({ endpoint: process.env.COSMOS_ENDPOINT, key: process.env.COSMOS_KEY });
+const client = new CosmosClient({
+  endpoint: process.env.COSMOS_ENDPOINT,
+  key: process.env.COSMOS_KEY
+});
 const database = client.database(process.env.COSMOS_DATABASE || "InventarioDB");
 const container = database.container(process.env.COSMOS_CONTAINER_PRODUTOS || "Produtos");
 
