@@ -7,12 +7,13 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "@azure/cosmos": "^4.5.1",
+    "@azure/storage-blob": "^12.28.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "morgan": "^1.10.0",
-    "uuid": "^9.0.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "@azure/cosmos": "^4.2.0"
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.1"
   }
 }
