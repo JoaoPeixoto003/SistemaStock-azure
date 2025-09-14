@@ -21,7 +21,6 @@
   </header>
 
   <main class="p-6 space-y-6">
-
     <!-- Login -->
     <section id="login-section" class="bg-white p-6 rounded shadow">
       <h2 class="text-lg font-bold mb-4">Login</h2>
@@ -62,7 +61,6 @@
           <button onclick="addProduto()" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</button>
         </div>
 
-        <!-- Upload imagem -->
         <div class="flex gap-2 items-center">
           <input type="file" id="p-img" accept="image/*">
           <button onclick="uploadSelectedImage()" class="bg-purple-600 text-white px-4 py-2 rounded">Upload
@@ -87,6 +85,23 @@
         </table>
       </section>
 
+      <!-- Lista Movimentações -->
+      <section class="bg-white p-6 rounded shadow">
+        <h2 class="text-lg font-bold mb-4">Movimentações</h2>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2 border">Tipo</th>
+              <th class="p-2 border">Produto</th>
+              <th class="p-2 border">Qtd</th>
+              <th class="p-2 border">Utilizador</th>
+              <th class="p-2 border">Data</th>
+            </tr>
+          </thead>
+          <tbody id="t-mov"></tbody>
+        </table>
+      </section>
+
     </section>
   </main>
 
@@ -94,12 +109,10 @@
     const API = "http://localhost:8080";
     let token = localStorage.getItem("token") || null;
 
-    // --- Autenticação ---
     function showApp(logged) {
       document.getElementById("login-section").classList.toggle("hidden", logged);
       document.getElementById("app-section").classList.toggle("hidden", !logged);
       document.getElementById("logout-btn").classList.toggle("hidden", !logged);
-
       if (logged) {
         document.getElementById("user-info").textContent = "Autenticado";
         carregar();
@@ -132,7 +145,6 @@
       showApp(false);
     }
 
-    // --- utilitário fetch ---
     async function fetchJSON(url, opts = {}) {
       opts.headers = opts.headers || {};
       if (token) opts.headers["Authorization"] = "Bearer " + token;
@@ -145,21 +157,22 @@
     async function carregar() {
       const produtos = await fetchJSON(API + "/api/produtos");
       document.getElementById("t-prod").innerHTML = produtos.map(p => `
-    <tr>
-      <td class="p-2 border">${p.nome}</td>
-      <td class="p-2 border">${p.categoria}</td>
-      <td class="p-2 border ${p.quantidadeAtual <= p.quantidadeMinima ? 'text-red-600 font-bold' : ''}">
-        ${p.quantidadeAtual || 0}
-      </td>
-      <td class="p-2 border">${p.quantidadeMinima || 0}</td>
-      <td class="p-2 border">
-        <button onclick="apagarProduto('${p.id}', '${p.categoria}')" class="bg-red-600 text-white px-2 py-1 rounded">🗑️</button>
-      </td>
-    </tr>`).join("");
+<tr>
+  <td class="p-2 border">${p.nome}</td>
+  <td class="p-2 border">${p.categoria}</td>
+  <td class="p-2 border ${p.quantidadeAtual <= p.quantidadeMinima ? 'text-red-600 font-bold' : ''}">
+    ${p.quantidadeAtual || 0}
+  </td>
+  <td class="p-2 border">${p.quantidadeMinima || 0}</td>
+  <td class="p-2 border flex gap-2">
+    <button onclick="alterarQuantidade('${p.id}', '${p.categoria}', 1)" class="bg-green-600 text-white px-2 py-1 rounded">➕</button>
+    <button onclick="alterarQuantidade('${p.id}', '${p.categoria}', -1)" class="bg-yellow-600 text-white px-2 py-1 rounded">➖</button>
+    <button onclick="apagarProduto('${p.id}', '${p.categoria}')" class="bg-red-600 text-white px-2 py-1 rounded">🗑️</button>
+  </td>
+</tr>`).join("");
 
       document.getElementById("m-total").textContent = produtos.length;
       document.getElementById("m-low").textContent = produtos.filter(p => (p.quantidadeAtual || 0) <= (p.quantidadeMinima || 0)).length;
-      document.getElementById("m-mov").textContent = 0;
     }
 
     async function addProduto() {
@@ -175,19 +188,58 @@
         body: JSON.stringify(payload)
       });
       carregar();
+      carregarMovimentacoes();
+    }
+
+    // --- Alterar quantidade ---
+    async function alterarQuantidade(id, categoria, delta) {
+      try {
+        await fetchJSON(`${API}/api/produtos/${id}/${categoria}/quantidade`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ delta })
+        });
+        location.reload(); // 🔄 refresh automático
+      } catch (err) {
+        console.error("Erro ao alterar quantidade:", err);
+        alert("Erro ao alterar quantidade");
+      }
     }
 
     async function apagarProduto(id, categoria) {
       if (!confirm("Tens a certeza que queres apagar este produto?")) return;
       await fetchJSON(`${API}/api/produtos/${id}/${categoria}`, { method: "DELETE" });
       carregar();
+      carregarMovimentacoes();
+    }
+
+    // --- Alterar quantidade ---
+    async function alterarQuantidade(id, categoria, delta) {
+      await fetchJSON(`${API}/api/produtos/${id}/${categoria}/quantidade`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delta })
+      });
+      carregar();
+      carregarMovimentacoes();
     }
 
     // --- Movimentações ---
     async function carregarMovimentacoes() {
       try {
         const movs = await fetchJSON(API + "/api/produtos/movimentacoes/all");
-        console.log("Movimentações:", movs); // por enquanto só console
+        document.getElementById("t-mov").innerHTML = movs.map(m => `
+    <tr>
+      <td class="p-2 border">${m.tipo}</td>
+      <td class="p-2 border">${m.produtoId}</td>
+      <td class="p-2 border">${m.quantidade}</td>
+      <td class="p-2 border">${m.user}</td>
+      <td class="p-2 border">${new Date(m.data).toLocaleString()}</td>
+    </tr>`).join("");
+
+        const hoje = new Date().toISOString().slice(0, 10);
+        const hojeCount = movs.filter(m => m.data.startsWith(hoje)).length;
+        document.getElementById("m-mov").textContent = hojeCount;
       } catch (e) {
         console.error("Erro ao carregar movimentações:", e);
       }
@@ -200,7 +252,7 @@
       const file = fileInput.files[0];
       const reader = new FileReader();
       reader.onload = async () => {
-        const base64 = reader.result.split(",")[1]; // remove data:image/...;base64,
+        const base64 = reader.result.split(",")[1];
         const payload = { filename: file.name, dataBase64: base64 };
         try {
           const res = await fetchJSON(API + "/api/produtos/upload", {

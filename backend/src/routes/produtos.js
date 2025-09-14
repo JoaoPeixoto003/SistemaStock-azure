@@ -10,27 +10,30 @@ dotenv.config();
 const r = Router();
 
 // Cosmos setup
-const client = new CosmosClient({ endpoint: process.env.COSMOS_ENDPOINT, key: process.env.COSMOS_KEY });
+const client = new CosmosClient({
+  endpoint: process.env.COSMOS_ENDPOINT,
+  key: process.env.COSMOS_KEY,
+});
 const database = client.database(process.env.COSMOS_DATABASE || "InventarioDB");
 const produtosContainer = database.container(process.env.COSMOS_CONTAINER_PRODUTOS || "Produtos");
 const movContainer = database.container(process.env.COSMOS_CONTAINER_MOVIMENTACOES || "Movimentacoes");
 const alertContainer = database.container(process.env.COSMOS_CONTAINER_ALERTAS || "Alertas");
 
-// Blob setup (expects AZURE_STORAGE_CONNECTION_STRING in .env)
+// Blob setup
 const blobConnection = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const blobServiceClient = blobConnection ? BlobServiceClient.fromConnectionString(blobConnection) : null;
 const blobContainerName = process.env.AZURE_STORAGE_CONTAINER || "product-images";
 
-// Utility: create movement record
+// --- Utilities ---
 async function criarMovimento(produtoId, tipo, quantidade, user = "system") {
   try {
     const mov = {
       id: uuid(),
       produtoId,
-      tipo, // "create", "delete", "update"
+      tipo, // "create", "delete", "entrada", "saida"
       quantidade,
       user,
-      data: new Date().toISOString()
+      data: new Date().toISOString(),
     };
     await movContainer.items.create(mov);
   } catch (err) {
@@ -38,7 +41,6 @@ async function criarMovimento(produtoId, tipo, quantidade, user = "system") {
   }
 }
 
-// Utility: criar alerta
 async function criarAlerta(produto) {
   try {
     const alerta = {
@@ -49,7 +51,7 @@ async function criarAlerta(produto) {
       quantidadeAtual: produto.quantidadeAtual || 0,
       quantidadeMinima: produto.quantidadeMinima || 0,
       data: new Date().toISOString(),
-      status: "open"
+      status: "open",
     };
     await alertContainer.items.create(alerta);
   } catch (err) {
@@ -57,15 +59,11 @@ async function criarAlerta(produto) {
   }
 }
 
-// GET all produtos
+// --- Rotas ---
 r.get("/", async (req, res) => {
   try {
-    // query all produtos e filtra localmente pelo user
     const { resources } = await produtosContainer.items.query({ query: "SELECT * FROM c" }).fetchAll();
-
-    // filtra pelo username que veio do token
-    const produtosDoUser = resources.filter(p => p.user === req.user.username);
-
+    const produtosDoUser = resources.filter((p) => p.user === req.user.username);
     res.json(produtosDoUser);
   } catch (err) {
     console.error(err);
@@ -73,23 +71,18 @@ r.get("/", async (req, res) => {
   }
 });
 
-
-// POST create produto
 r.post("/", async (req, res) => {
   try {
     const item = req.body;
     if (!item.categoria) item.categoria = "Geral";
     if (!item.id) item.id = uuid();
 
-    // atribui o user do token
     item.user = req.user.username;
 
     const { resource } = await produtosContainer.items.create(item);
 
-    // cria movimentacao
     await criarMovimento(resource.id, "create", resource.quantidadeAtual || 0, req.user.username);
 
-    // cria alerta se stock baixo
     if ((resource.quantidadeAtual || 0) <= (resource.quantidadeMinima || 0)) {
       await criarAlerta(resource);
     }
@@ -101,8 +94,6 @@ r.post("/", async (req, res) => {
   }
 });
 
-
-// DELETE produto by id and partition key (categoria)
 r.delete("/:id/:categoria", async (req, res) => {
   try {
     const { id, categoria } = req.params;
@@ -121,10 +112,39 @@ r.delete("/:id/:categoria", async (req, res) => {
   }
 });
 
-// rota para listar movimentacoes
+// 🔹 NOVO: Alterar quantidade
+r.put("/:id/:categoria/quantidade", async (req, res) => {
+  try {
+    const { id, categoria } = req.params;
+    const { delta } = req.body;
+    const { resource: produto } = await produtosContainer.item(id, categoria).read();
+
+    if (!produto) return res.status(404).json({ error: "Produto não encontrado" });
+    if (produto.user !== req.user.username) return res.status(403).json({ error: "Não podes alterar este produto" });
+
+    produto.quantidadeAtual = (produto.quantidadeAtual || 0) + delta;
+    await produtosContainer.items.upsert(produto);
+
+    const tipoMov = delta > 0 ? "entrada" : "saida";
+    await criarMovimento(id, tipoMov, Math.abs(delta), req.user.username);
+
+    if ((produto.quantidadeAtual || 0) <= (produto.quantidadeMinima || 0)) {
+      await criarAlerta(produto);
+    }
+
+    res.json(produto);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao alterar quantidade" });
+  }
+});
+
+// Listar movimentações
 r.get("/movimentacoes/all", async (req, res) => {
   try {
-    const { resources } = await movContainer.items.query({ query: "SELECT * FROM c ORDER BY c.data DESC" }).fetchAll();
+    const { resources } = await movContainer.items
+      .query({ query: "SELECT * FROM c ORDER BY c.data DESC" })
+      .fetchAll();
     res.json(resources);
   } catch (err) {
     console.error(err);
@@ -132,7 +152,7 @@ r.get("/movimentacoes/all", async (req, res) => {
   }
 });
 
-// rota upload base64 -> blob
+// Upload imagem
 r.post("/upload", async (req, res) => {
   try {
     const { filename, dataBase64 } = req.body;
