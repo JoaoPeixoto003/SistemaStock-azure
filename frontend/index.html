@@ -5,111 +5,302 @@
   <meta charset="UTF-8">
   <title>Inventário</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      transition: background-color 0.3s;
+    }
+    
+    .card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn {
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+    
+    .metric-card {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .metric-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+    }
+    
+    .metric-card:nth-child(1)::after { background-color: var(--primary); }
+    .metric-card:nth-child(2)::after { background-color: var(--danger); }
+    .metric-card:nth-child(3)::after { background-color: var(--secondary); }
+    .metric-card:nth-child(4)::after { background-color: var(--warning); }
+    
+    .table-row {
+      transition: background-color 0.2s;
+    }
+    
+    .table-row:hover {
+      background-color: #f9fafb;
+    }
+    
+    .low-stock {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 
-<body class="bg-gray-100 font-sans min-h-screen">
-
-  <header class="bg-blue-600 text-white p-4 shadow flex justify-between items-center">
-    <h1 class="text-xl font-bold">📦 Sistema de Inventário</h1>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 shadow-lg flex justify-between items-center">
+    <div class="flex items-center">
+      <div class="bg-white/20 p-2 rounded-lg mr-3">
+        <i class="fas fa-boxes text-xl"></i>
+      </div>
+      <h1 class="text-2xl font-bold">Sistema de Inventário</h1>
+    </div>
     <div class="flex gap-4 items-center">
-      <div id="user-info" class="italic"></div>
+      <div id="user-info" class="text-sm bg-white/10 px-3 py-1 rounded-full"></div>
       <button id="logout-btn" onclick="logout()"
-        class="hidden bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
-        Sair
+        class="hidden bg-white text-blue-600 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium transition-all flex items-center">
+        <i class="fas fa-sign-out-alt mr-2"></i> Sair
       </button>
     </div>
   </header>
 
-  <main class="p-6 space-y-6">
-
-    <!-- Login -->
-    <section id="login-section" class="bg-white p-6 rounded shadow">
-      <h2 class="text-lg font-bold mb-4">Login</h2>
-      <div class="flex gap-4 flex-wrap">
-        <input id="username" class="border p-2 rounded" placeholder="Utilizador">
-        <input id="password" type="password" class="border p-2 rounded" placeholder="Password">
-        <button onclick="login()" class="bg-green-600 text-white px-4 py-2 rounded">Entrar</button>
+  <main class="p-6 space-y-6 max-w-7xl mx-auto">
+    <!-- Login Section -->
+    <section id="login-section" class="bg-white p-8 rounded-xl shadow-md max-w-md mx-auto fade-in">
+      <div class="text-center mb-6">
+        <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-user-lock text-blue-600 text-2xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800">Autenticação</h2>
+        <p class="text-gray-500 mt-1">Entre com suas credenciais</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Utilizador</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-user text-gray-400"></i>
+            </div>
+            <input id="username" class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nome de utilizador">
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input id="password" type="password" class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Palavra-passe">
+          </div>
+        </div>
+        
+        <button onclick="login()" id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center">
+          <i class="fas fa-sign-in-alt mr-2"></i> Entrar
+        </button>
       </div>
     </section>
 
-    <!-- App -->
+    <!-- App Section -->
     <section id="app-section" class="hidden space-y-6">
-
-      <!-- Métricas -->
-      <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white p-4 rounded shadow text-center">
-          <h2 class="text-gray-500">Total Produtos</h2>
-          <p id="m-total" class="text-3xl font-bold">—</p>
+      <!-- Metrics -->
+      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="metric-card bg-white p-5 rounded-xl shadow-md text-center">
+          <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-boxes text-blue-600"></i>
+          </div>
+          <h2 class="text-gray-500 text-sm font-medium">Total Produtos</h2>
+          <p id="m-total" class="text-3xl font-bold text-gray-800 mt-1">—</p>
         </div>
-        <div class="bg-white p-4 rounded shadow text-center">
-          <h2 class="text-gray-500">Stock Baixo</h2>
-          <p id="m-low" class="text-3xl font-bold text-red-600">—</p>
+        
+        <div class="metric-card bg-white p-5 rounded-xl shadow-md text-center">
+          <div class="bg-red-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-exclamation-triangle text-red-600"></i>
+          </div>
+          <h2 class="text-gray-500 text-sm font-medium">Stock Baixo</h2>
+          <p id="m-low" class="text-3xl font-bold text-red-600 mt-1">—</p>
         </div>
-        <div class="bg-white p-4 rounded shadow text-center">
-          <h2 class="text-gray-500">Movimentos Hoje</h2>
-          <p id="m-mov" class="text-3xl font-bold text-green-600">—</p>
+        
+        <div class="metric-card bg-white p-5 rounded-xl shadow-md text-center">
+          <div class="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-exchange-alt text-green-600"></i>
+          </div>
+          <h2 class="text-gray-500 text-sm font-medium">Movimentos Hoje</h2>
+          <p id="m-mov" class="text-3xl font-bold text-green-600 mt-1">—</p>
         </div>
-        <div class="bg-white p-4 rounded shadow text-center">
-          <h2 class="text-gray-500">Alertas</h2>
-          <p id="m-alerts" class="text-3xl font-bold text-yellow-600">—</p>
+        
+        <div class="metric-card bg-white p-5 rounded-xl shadow-md text-center">
+          <div class="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-bell text-yellow-600"></i>
+          </div>
+          <h2 class="text-gray-500 text-sm font-medium">Alertas</h2>
+          <p id="m-alerts" class="text-3xl font-bold text-yellow-600 mt-1">—</p>
         </div>
       </section>
 
-      <!-- Adicionar Produto -->
-      <section class="bg-white p-6 rounded shadow space-y-4">
-        <h2 class="text-lg font-bold mb-4">Adicionar Produto</h2>
-        <div class="flex gap-4 flex-wrap">
-          <input id="p-nome" class="border p-2 rounded flex-1" placeholder="Nome">
-          <input id="p-cat" class="border p-2 rounded flex-1" placeholder="Categoria">
-          <input id="p-qtd" class="border p-2 rounded w-24" type="number" placeholder="Qtd">
-          <input id="p-min" class="border p-2 rounded w-24" type="number" placeholder="Mín">
-          <button onclick="addProduto()" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</button>
+      <!-- Add Product -->
+      <section class="bg-white p-6 rounded-xl shadow-md space-y-5 fade-in">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center">
+          <i class="fas fa-plus-circle text-blue-600 mr-2"></i> Adicionar Produto
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+            <input id="p-nome" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Nome do produto">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+            <input id="p-cat" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Categoria">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
+            <input id="p-qtd" type="number" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Qtd">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Mínimo</label>
+            <input id="p-min" type="number" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Mín">
+          </div>
+          
+          <div class="flex items-end">
+            <button onclick="addProduto()" class="btn w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium flex items-center justify-center">
+              <i class="fas fa-plus mr-2"></i> Adicionar
+            </button>
+          </div>
         </div>
 
-        <div class="flex gap-2 items-center">
-          <input type="file" id="p-img" accept="image/*">
-          <button id="btn-upload" onclick="uploadSelectedImage()"
-            class="bg-purple-600 text-white px-4 py-2 rounded">Upload Imagem</button>
-          <span id="upload-status" class="text-sm italic"></span>
+        <div class="border-t pt-4 mt-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Upload de Imagem</label>
+          <div class="flex items-center gap-3">
+            <label class="flex-1">
+              <div class="flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <i class="fas fa-cloud-upload-alt text-gray-500 mr-2"></i>
+                <span id="file-name" class="text-sm text-gray-500">Selecionar imagem</span>
+                <input type="file" id="p-img" accept="image/*" class="hidden" onchange="updateFileName()">
+              </div>
+            </label>
+            
+            <button id="btn-upload" onclick="uploadSelectedImage()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center">
+              <i class="fas fa-upload mr-2"></i> Upload
+            </button>
+          </div>
+          <span id="upload-status" class="text-sm text-gray-500 mt-2 block"></span>
         </div>
-
       </section>
 
-      <!-- Lista Produtos -->
-      <section class="bg-white p-6 rounded shadow">
-        <h2 class="text-lg font-bold mb-4">Produtos</h2>
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-200">
-              <th class="p-2 border">Nome</th>
-              <th class="p-2 border">Categoria</th>
-              <th class="p-2 border">Qtd</th>
-              <th class="p-2 border">Mín</th>
-              <th class="p-2 border">Imagem</th>
-              <th class="p-2 border">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="t-prod"></tbody>
-        </table>
+      <!-- Products List -->
+      <section class="bg-white p-6 rounded-xl shadow-md fade-in">
+        <div class="flex justify-between items-center mb-5">
+          <h2 class="text-xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-box-open text-blue-600 mr-2"></i> Produtos
+          </h2>
+          <button onclick="carregar()" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm flex items-center">
+            <i class="fas fa-sync-alt mr-1.5"></i> Atualizar
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto rounded-lg">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-gray-100 text-left text-gray-700 font-medium">
+                <th class="p-3 rounded-l-lg">Nome</th>
+                <th class="p-3">Categoria</th>
+                <th class="p-3">Quantidade</th>
+                <th class="p-3">Mínimo</th>
+                <th class="p-3">Imagem</th>
+                <th class="p-3 rounded-r-lg">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="t-prod" class="divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
       </section>
 
-      <!-- Lista Movimentações -->
-      <section class="bg-white p-6 rounded shadow">
-        <h2 class="text-lg font-bold mb-4">Movimentações</h2>
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-200">
-              <th class="p-2 border">Tipo</th>
-              <th class="p-2 border">Produto</th>
-              <th class="p-2 border">Qtd</th>
-              <th class="p-2 border">Utilizador</th>
-              <th class="p-2 border">Data</th>
-            </tr>
-          </thead>
-          <tbody id="t-mov"></tbody>
-        </table>
+      <!-- Movements List -->
+      <section class="bg-white p-6 rounded-xl shadow-md fade-in">
+        <div class="flex justify-between items-center mb-5">
+          <h2 class="text-xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-exchange-alt text-blue-600 mr-2"></i> Movimentações
+          </h2>
+          <button onclick="carregarMovimentacoes()" class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm flex items-center">
+            <i class="fas fa-sync-alt mr-1.5"></i> Atualizar
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto rounded-lg">
+          <table class="w-full">
+            <thead>
+              <tr class="bg-gray-100 text-left text-gray-700 font-medium">
+                <th class="p-3 rounded-l-lg">Tipo</th>
+                <th class="p-3">Produto</th>
+                <th class="p-3">Quantidade</th>
+                <th class="p-3">Utilizador</th>
+                <th class="p-3 rounded-r-lg">Data</th>
+              </tr>
+            </thead>
+            <tbody id="t-mov" class="divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
       </section>
-
     </section>
   </main>
 
@@ -135,21 +326,54 @@
       }
     }
 
+    function updateFileName() {
+      const fileInput = document.getElementById('p-img');
+      const fileName = document.getElementById('file-name');
+      
+      if (fileInput.files.length > 0) {
+        fileName.textContent = fileInput.files[0].name;
+        fileName.classList.add('text-gray-800');
+      } else {
+        fileName.textContent = 'Selecionar imagem';
+        fileName.classList.remove('text-gray-800');
+      }
+    }
+
     async function login() {
-      const res = await fetch(API + "/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: document.getElementById("username").value,
-          password: document.getElementById("password").value
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        token = data.token;
-        localStorage.setItem("token", token);
-        showApp(true);
-      } else alert("Credenciais inválidas");
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      
+      if (!username || !password) {
+        alert("Por favor, preencha todos os campos");
+        return;
+      }
+      
+      const loginBtn = document.getElementById("login-btn");
+      const originalText = loginBtn.innerHTML;
+      loginBtn.innerHTML = '<div class="loading"></div> Autenticando...';
+      loginBtn.disabled = true;
+      
+      try {
+        const res = await fetch(API + "/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          token = data.token;
+          localStorage.setItem("token", token);
+          showApp(true);
+        } else {
+          alert("Credenciais inválidas");
+        }
+      } catch (error) {
+        alert("Erro de conexão. Tente novamente.");
+      } finally {
+        loginBtn.innerHTML = originalText;
+        loginBtn.disabled = false;
+      }
     }
 
     function logout() {
@@ -168,57 +392,107 @@
 
     // Produtos
     async function carregar() {
-      const produtos = await fetchJSON(API + "/api/produtos");
-      produtosCache = {};
-      produtos.forEach(p => produtosCache[p.id] = p);
+      try {
+        const produtos = await fetchJSON(API + "/api/produtos");
+        produtosCache = {};
+        produtos.forEach(p => produtosCache[p.id] = p);
 
-      document.getElementById("t-prod").innerHTML = produtos.map(p => `
-  <tr>
-    <td class="p-2 border">${p.nome}</td>
-    <td class="p-2 border">${p.categoria}</td>
-    <td class="p-2 border ${p.quantidadeAtual <= p.quantidadeMinima ? 'text-red-600 font-bold' : ''}">
-      ${p.quantidadeAtual || 0}
-    </td>
-    <td class="p-2 border">${p.quantidadeMinima || 0}</td>
-    <td class="p-2 border">${p.imagemUrl ? `<img src="${p.imagemUrl}" class="w-20 h-12 object-cover rounded">` : '—'}</td>
-    <td class="p-2 border flex gap-2">
-      <button onclick="alterarQuantidade('${p.id}','${p.categoria}',1)" class="bg-green-600 text-white px-2 py-1 rounded">➕</button>
-      <button onclick="alterarQuantidade('${p.id}','${p.categoria}',-1)" class="bg-yellow-600 text-white px-2 py-1 rounded">➖</button>
-      <button onclick="apagarProduto('${p.id}', '${p.categoria}')" class="bg-red-600 text-white px-2 py-1 rounded">🗑️</button>
-    </td>
-  </tr>`).join("");
+        document.getElementById("t-prod").innerHTML = produtos.map(p => `
+          <tr class="table-row ${p.quantidadeAtual <= p.quantidadeMinima ? 'low-stock bg-red-50' : ''}">
+            <td class="p-3 font-medium">${p.nome}</td>
+            <td class="p-3"><span class="bg-gray-100 text-gray-800 text-xs px-2.5 py-0.5 rounded-full">${p.categoria}</span></td>
+            <td class="p-3 font-medium ${p.quantidadeAtual <= p.quantidadeMinima ? 'text-red-600' : ''}">
+              ${p.quantidadeAtual || 0}
+            </td>
+            <td class="p-3">${p.quantidadeMinima || 0}</td>
+            <td class="p-3">${p.imagemUrl ? `<img src="${p.imagemUrl}" class="w-16 h-10 object-cover rounded-lg border">` : '<span class="text-gray-400">—</span>'}</td>
+            <td class="p-3">
+              <div class="flex gap-2">
+                <button onclick="alterarQuantidade('${p.id}','${p.categoria}',1)" class="bg-green-100 text-green-700 hover:bg-green-200 p-2 rounded-lg" title="Adicionar stock">
+                  <i class="fas fa-plus"></i>
+                </button>
+                <button onclick="alterarQuantidade('${p.id}','${p.categoria}',-1)" class="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 p-2 rounded-lg" title="Remover stock">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <button onclick="apagarProduto('${p.id}', '${p.categoria}')" class="bg-red-100 text-red-700 hover:bg-red-200 p-2 rounded-lg" title="Eliminar produto">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>`).join("");
 
-      document.getElementById("m-total").textContent = produtos.length;
-      document.getElementById("m-low").textContent = produtos.filter(p => (p.quantidadeAtual || 0) <= (p.quantidadeMinima || 0)).length;
+        document.getElementById("m-total").textContent = produtos.length;
+        document.getElementById("m-low").textContent = produtos.filter(p => (p.quantidadeAtual || 0) <= (p.quantidadeMinima || 0)).length;
+      } catch (error) {
+        console.error("Erro ao carregar produtos:", error);
+      }
     }
 
     // Add product (uses lastUploadedImageUrl if set)
     async function addProduto() {
+      const nome = document.getElementById("p-nome").value;
+      const categoria = document.getElementById("p-cat").value;
+      
+      if (!nome) {
+        alert("Por favor, insira um nome para o produto");
+        return;
+      }
+      
       const payload = {
-        nome: document.getElementById("p-nome").value,
-        categoria: document.getElementById("p-cat").value || "Geral",
+        nome: nome,
+        categoria: categoria || "Geral",
         quantidadeAtual: Number(document.getElementById("p-qtd").value || 0),
         quantidadeMinima: Number(document.getElementById("p-min").value || 0),
         imagemUrl: lastUploadedImageUrl || null
       };
-      await fetchJSON(API + "/api/produtos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      // reset image state
-      lastUploadedImageUrl = null;
-      document.getElementById("p-img").value = "";
-      document.getElementById("upload-status").textContent = "";
-      carregar();
-      carregarMovimentacoes();
+      
+      try {
+        await fetchJSON(API + "/api/produtos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        
+        // reset form and image state
+        document.getElementById("p-nome").value = "";
+        document.getElementById("p-cat").value = "";
+        document.getElementById("p-qtd").value = "";
+        document.getElementById("p-min").value = "";
+        lastUploadedImageUrl = null;
+        document.getElementById("p-img").value = "";
+        document.getElementById("file-name").textContent = "Selecionar imagem";
+        document.getElementById("file-name").classList.remove("text-gray-800");
+        document.getElementById("upload-status").textContent = "";
+        
+        carregar();
+        carregarMovimentacoes();
+        
+        // Show success feedback
+        const addButton = document.querySelector('button[onclick="addProduto()"]');
+        const originalText = addButton.innerHTML;
+        addButton.innerHTML = '<i class="fas fa-check mr-2"></i> Adicionado!';
+        addButton.classList.add('bg-green-600', 'hover:bg-green-700');
+        
+        setTimeout(() => {
+          addButton.innerHTML = originalText;
+          addButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+        }, 2000);
+        
+      } catch (error) {
+        alert("Erro ao adicionar produto: " + error.message);
+      }
     }
 
     async function apagarProduto(id, categoria) {
-      if (!confirm("Tens a certeza que queres apagar este produto?")) return;
-      await fetchJSON(`${API}/api/produtos/${id}/${categoria}`, { method: "DELETE" });
-      carregar();
-      carregarMovimentacoes();
+      if (!confirm("Tem a certeza que deseja eliminar este produto?")) return;
+      
+      try {
+        await fetchJSON(`${API}/api/produtos/${id}/${categoria}`, { method: "DELETE" });
+        carregar();
+        carregarMovimentacoes();
+      } catch (error) {
+        alert("Erro ao eliminar produto: " + error.message);
+      }
     }
 
     // Alterar quantidade
@@ -229,7 +503,8 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ delta })
         });
-        location.reload(); // refresh automatic
+        carregar();
+        carregarMovimentacoes();
       } catch (err) {
         console.error("Erro ao alterar quantidade:", err);
         alert("Erro ao alterar quantidade");
@@ -245,13 +520,17 @@
         }
         const movs = await fetchJSON(API + "/api/produtos/movimentacoes/all");
         document.getElementById("t-mov").innerHTML = movs.map(m => `
-    <tr>
-      <td class="p-2 border">${m.tipo}</td>
-      <td class="p-2 border">${(produtosCache[m.produtoId] && produtosCache[m.produtoId].nome) || m.produtoId}</td>
-      <td class="p-2 border">${m.quantidade}</td>
-      <td class="p-2 border">${m.user}</td>
-      <td class="p-2 border">${new Date(m.data).toLocaleString()}</td>
-    </tr>`).join("");
+          <tr class="table-row">
+            <td class="p-3">
+              <span class="${m.tipo === 'ENTRADA' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'} text-xs font-medium px-2.5 py-0.5 rounded-full">
+                ${m.tipo}
+              </span>
+            </td>
+            <td class="p-3 font-medium">${(produtosCache[m.produtoId] && produtosCache[m.produtoId].nome) || m.produtoId}</td>
+            <td class="p-3 font-medium ${m.tipo === 'ENTRADA' ? 'text-green-600' : 'text-yellow-600'}">${m.quantidade}</td>
+            <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full">${m.user}</span></td>
+            <td class="p-3 text-sm text-gray-500">${new Date(m.data).toLocaleString()}</td>
+          </tr>`).join("");
 
         const hoje = new Date().toISOString().slice(0, 10);
         const hojeCount = movs.filter(m => m.data.startsWith(hoje)).length;
@@ -264,31 +543,65 @@
     // Upload image and store URL in lastUploadedImageUrl
     async function uploadSelectedImage() {
       const fileInput = document.getElementById("p-img");
-      if (fileInput.files.length === 0) return alert("Seleciona uma imagem primeiro");
+      if (fileInput.files.length === 0) return alert("Selecione uma imagem primeiro");
+      
       const file = fileInput.files[0];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (file.size > maxSize) {
+        alert("A imagem deve ter no máximo 5MB");
+        return;
+      }
+      
+      const uploadBtn = document.getElementById("btn-upload");
+      const originalText = uploadBtn.innerHTML;
+      uploadBtn.innerHTML = '<div class="loading mr-2"></div> A enviar...';
+      uploadBtn.disabled = true;
+      
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = reader.result.split(",")[1];
         const payload = { filename: file.name, dataBase64: base64 };
+        
         try {
-          document.getElementById("upload-status").textContent = "A enviar...";
+          document.getElementById("upload-status").textContent = "A enviar imagem...";
           const res = await fetchJSON(API + "/api/produtos/upload", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
           });
+          
           lastUploadedImageUrl = res.url;
-          document.getElementById("upload-status").textContent = "Imagem carregada ✔️";
+          document.getElementById("upload-status").textContent = "Imagem carregada com sucesso!";
+          document.getElementById("upload-status").classList.add("text-green-600");
+          
+          // Reset button after success
+          setTimeout(() => {
+            uploadBtn.innerHTML = originalText;
+            uploadBtn.disabled = false;
+          }, 1000);
+          
         } catch (e) {
           console.error(e);
-          document.getElementById("upload-status").textContent = "Erro no upload";
+          document.getElementById("upload-status").textContent = "Erro no upload da imagem";
+          document.getElementById("upload-status").classList.add("text-red-600");
+          uploadBtn.innerHTML = originalText;
+          uploadBtn.disabled = false;
           alert("Erro ao enviar imagem");
         }
       };
       reader.readAsDataURL(file);
     }
 
+    // Initialize
     showApp(!!token);
+    
+    // Add keyboard event for login (Enter key)
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !token) {
+        login();
+      }
+    });
   </script>
 </body>
 
